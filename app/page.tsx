@@ -3,20 +3,24 @@
 import { useState, useEffect } from "react"
 import Board from "./components/Board"
 import { calculateWinner, getComputerMove } from "./utils/gameLogic"
+import { soundEffects } from "./utils/soundEffects"
 import ServiceWorkerRegistration from "./components/ServiceWorkerRegistration"
 import { Switch } from "@/app/components/ui/switch"
 import { Label } from "@/app/components/ui/label"
+import { Volume2, VolumeX } from "lucide-react"
 
 export default function TicTacToe() {
   const [board, setBoard] = useState(Array(9).fill(null))
   const [xIsNext, setXIsNext] = useState(true)
   const [status, setStatus] = useState("")
   const [isSinglePlayer, setIsSinglePlayer] = useState(false)
+  const [isMuted, setIsMuted] = useState(false)
 
   useEffect(() => {
     const winner = calculateWinner(board)
     if (winner) {
       setStatus(`Winner: ${winner}`)
+      soundEffects?.playWin()
     } else if (board.every((square) => square !== null)) {
       setStatus("Draw!")
     } else {
@@ -31,6 +35,7 @@ export default function TicTacToe() {
           newBoard[computerMove] = "O"
           setBoard(newBoard)
           setXIsNext(true)
+          soundEffects?.playMove()
         }
       }, 500)
 
@@ -46,6 +51,7 @@ export default function TicTacToe() {
     newBoard[i] = xIsNext ? "X" : "O"
     setBoard(newBoard)
     setXIsNext(!xIsNext)
+    soundEffects?.playMove()
   }
 
   const resetGame = () => {
@@ -58,15 +64,27 @@ export default function TicTacToe() {
     resetGame()
   }
 
+  const toggleMute = () => {
+    if (soundEffects) {
+      const newMuteStatus = soundEffects.toggleMute()
+      setIsMuted(newMuteStatus)
+    }
+  }
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white p-4">
       <h1 className="text-4xl font-bold mb-4">Tic-Tac-Toe</h1>
       <ServiceWorkerRegistration />
-      <div className="flex items-center space-x-2 mb-4">
-        <Switch id="game-mode" checked={isSinglePlayer} onCheckedChange={toggleGameMode} />
-        <Label htmlFor="game-mode" className="text-white">
-          {isSinglePlayer ? "Single Player (vs Computer)" : "Two Players"}
-        </Label>
+      <div className="flex items-center space-x-4 mb-4">
+        <div className="flex items-center space-x-2">
+          <Switch id="game-mode" checked={isSinglePlayer} onCheckedChange={toggleGameMode} />
+          <Label htmlFor="game-mode" className="text-white">
+            {isSinglePlayer ? "Single Player (vs Computer)" : "Two Players"}
+          </Label>
+        </div>
+        <button onClick={toggleMute} className="p-2 rounded-full bg-gray-700 hover:bg-gray-600 transition-colors">
+          {isMuted ? <VolumeX size={24} /> : <Volume2 size={24} />}
+        </button>
       </div>
       <Board squares={board} onClick={handleClick} disableClicks={isSinglePlayer && !xIsNext} />
       <div className="mt-4 text-xl font-semibold">{status}</div>
